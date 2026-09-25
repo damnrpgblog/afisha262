@@ -2,913 +2,276 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>День города Челябинска — Спецпроект</title>
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Афиша Челябинска: Хронологический порядок</title>
     <style>
         :root {
-            --brand-primary: rgb(0, 68, 101);
-            --brand-primary-hover: rgb(0, 50, 80);
-            --brand-white: rgb(255, 255, 255);
-            --bg-app: #f4f7f9;
-            --bg-panel: #ffffff;
-            --border-light: #e2e8f0;
-            --text-dark: #1e293b;
-            --text-gray: #64748b;
-            --shadow-sm: 0 2px 4px rgba(0,0,0,0.04);
-            --shadow-md: 0 4px 12px rgba(0, 68, 101, 0.08);
-            --shadow-hover: 0 8px 16px rgba(0, 68, 101, 0.15);
+            --primary: #004465;
+            --accent: #c45c26;
+            --bg: #f4f7f9;
+            --white: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 12px;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: #cbd5e1; padding: 15px; display: flex; justify-content: center; }
 
-        html, body {
-            height: auto !important;
-            overflow: hidden !important;
-            background: var(--bg-app);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            color: var(--text-dark);
-        }
-
-        .leaflet-control-attribution { display: none !important; }
-
-        .app-header {
-            background: var(--brand-primary);
-            color: var(--brand-white);
-            padding: 14px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .app-title { font-size: 16px; font-weight: 700; }
-        .app-title span { font-weight: 400; opacity: 0.9; }
-
-        .app-badge {
-            background: rgba(255, 255, 255, 0.15);
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 600;
-        }
-
-        .app-body {
-            display: flex;
-            flex-direction: column;
+        .afisha-widget {
             width: 100%;
-        }
-
-        /* КВАДРАТНЫЙ ВЬЮПОРТ С ОГРАНИЧЕНИЕМ МАКСИМАЛЬНОЙ ВЫСОТЫ */
-        .map-wrapper {
-            width: 100%;
-            aspect-ratio: 1 / 1;
-            max-height: 500px; /* Карта не раздувается на широких мониторах */
+            max-width: 450px;
+            background: var(--bg);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             position: relative;
-            background: #e5e5e5;
-            border-bottom: 2px solid var(--brand-primary);
-        }
-
-        #map { width: 100%; height: 100%; }
-
-        .sidebar {
-            width: 100%;
-            background: var(--bg-panel);
+            height: 650px;
             display: flex;
             flex-direction: column;
         }
 
-        .filter-bar {
-            padding: 12px 16px;
-            background: var(--bg-panel);
-            border-bottom: 1px solid var(--border-light);
+        .widget-header {
+            background: var(--primary);
+            color: white;
+            padding: 20px 16px;
+            flex-shrink: 0;
+        }
+        .widget-header h2 { font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.3; }
+        .widget-header p { font-size: 11px; opacity: 0.8; margin-top: 4px; }
+
+        /* Навигация */
+        .days-nav {
             display: flex;
-            gap: 8px;
+            background: var(--white);
+            padding: 10px;
+            gap: 6px;
             overflow-x: auto;
-            white-space: nowrap;
-            -ms-overflow-style: none;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
             scrollbar-width: none;
         }
-        .filter-bar::-webkit-scrollbar { display: none; }
+        .days-nav::-webkit-scrollbar { display: none; }
 
-        .filter-chip {
-            padding: 6px 14px;
-            border-radius: 20px;
-            border: 1px solid var(--border-light);
-            background: var(--bg-app);
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            color: var(--text-gray);
-        }
-
-        .filter-chip.active {
-            background: var(--brand-primary);
-            color: var(--brand-white);
-            border-color: var(--brand-primary);
-        }
-
-        .route-summary-panel {
-            background: var(--bg-panel);
-            border-bottom: 1px solid var(--border-light);
-            padding: 14px 16px;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .route-stats {
-            font-size: 13px;
-            margin-bottom: 10px;
-            line-height: 1.4;
-            color: var(--text-gray);
-        }
-        .route-stats strong { color: var(--text-dark); font-weight: 600; }
-
-        /* ИНТЕРАКТИВНАЯ ЛЕГЕНДА */
-        .route-legend {
-            display: none;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 12px;
-            background: var(--bg-app);
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border-light);
-        }
-        .route-legend.visible { display: flex; }
-
-        .route-legend-title {
-            width: 100%;
-            font-size: 11px;
-            color: var(--text-gray);
-            margin-bottom: 4px;
-            font-weight: 600;
-        }
-
-        .legend-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 12px;
-            color: var(--text-dark);
-            background: var(--brand-white);
-            border: 1px solid var(--border-light);
-            border-radius: 20px;
-            padding: 4px 10px 4px 6px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            user-select: none;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-
-        .legend-item:hover {
-            border-color: var(--text-gray);
-            background: #f8fafc;
-        }
-
-        .legend-item.inactive {
-            opacity: 0.4;
-            background: transparent;
-            box-shadow: none;
-            filter: grayscale(100%);
-            text-decoration: line-through;
-        }
-
-        .legend-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            flex-shrink: 0;
-            border: 2px solid #fff;
-            box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
-        }
-
-        .conflict-alert {
-            background: #fff8e6;
-            color: #926c07;
-            border: 1px solid #fcebb6;
-            border-radius: 6px;
-            padding: 8px 12px;
-            font-size: 12px;
-            margin-bottom: 10px;
-            display: none;
-        }
-        .conflict-alert.visible { display: block; }
-
-        .btn-group { display: flex; gap: 8px; }
-        .btn {
-            padding: 11px 16px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            flex: 1;
-            text-align: center;
-        }
-        .btn-primary { background: var(--brand-primary); color: var(--brand-white); }
-        .btn-primary:disabled { background: #cbd5e1; cursor: not-allowed; }
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--border-light);
-            color: var(--text-gray);
-            flex: 0.3;
-        }
-
-        /* СПИСОК СОБЫТИЙ */
-        .events-list {
-            padding: 12px 16px;
+        .day-btn {
+            flex: 0 0 52px;
+            height: 58px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            background: var(--bg-app);
-            overflow: visible !important;
-            height: auto !important;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            background: #fff;
+            transition: all 0.2s ease;
+        }
+        .day-btn .d-name { font-size: 9px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
+        .day-btn .d-num { font-size: 17px; font-weight: 800; color: var(--text-main); }
+        
+        .day-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        .day-btn.active .d-name, .day-btn.active .d-num { color: white; }
+
+        /* Список событий */
+        .events-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 0;
         }
 
         .event-card {
-            background: var(--brand-white);
-            border: 1px solid transparent;
-            border-radius: 12px;
-            padding: 10px 12px;
+            background: var(--white);
+            padding: 16px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--primary);
             cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            gap: 10px;
-            align-items: flex-start;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .event-card.selected {
-            border-color: var(--brand-primary);
-            box-shadow: 0 0 0 1px var(--brand-primary), var(--shadow-sm);
-        }
-
-        .event-card-checkbox {
-            margin-top: 2px;
-            width: 18px;
-            height: 18px;
-            accent-color: var(--brand-primary);
+            transition: all 0.2s;
             flex-shrink: 0;
-        }
-
-        .event-card-content { flex: 1; min-width: 0; }
-
-        .event-category-tag {
-            font-size: 10px;
-            text-transform: uppercase;
-            font-weight: 700;
-            color: var(--brand-primary);
-            background: rgba(0, 68, 101, 0.08);
-            padding: 2px 6px;
-            border-radius: 4px;
-            display: inline-block;
-            margin-bottom: 4px;
-        }
-
-        .event-title {
-            font-size: 13.5px;
-            font-weight: 700;
-            line-height: 1.3;
-            margin-bottom: 4px;
-            color: var(--text-dark);
-        }
-
-        .event-meta {
-            font-size: 12px;
-            color: var(--text-gray);
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 6px;
         }
-        .event-time-badge { color: var(--text-dark); font-weight: 600; }
+        .event-card:hover { border-color: var(--primary); background: #fcfdfe; }
 
-        .order-badge {
-            width: 24px;
-            height: 24px;
-            background: var(--brand-primary);
-            color: var(--brand-white);
-            border-radius: 50%;
+        .card-meta { display: flex; justify-content: space-between; align-items: center; }
+        .event-cat { font-size: 10px; text-transform: uppercase; color: var(--accent); font-weight: 800; }
+        .event-time { font-size: 12px; font-weight: 700; color: var(--primary); background: #eef6fb; padding: 2px 8px; border-radius: 4px; }
+        
+        .event-card h3 { font-size: 15px; color: var(--text-main); line-height: 1.3; font-weight: 700; margin: 2px 0; }
+        .event-loc { font-size: 12px; color: var(--text-muted); }
+
+        /* Детальное окно */
+        .detail-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--white);
+            z-index: 100;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: 700;
-            flex-shrink: 0;
+            flex-direction: column;
+        }
+        .detail-overlay.open { transform: translateX(0); }
+
+        .detail-header { padding: 16px; border-bottom: 1px solid var(--border); }
+        .back-btn {
+            background: var(--bg); border: none; border-radius: 8px; 
+            padding: 8px 16px; cursor: pointer; color: var(--primary); 
+            font-weight: 700; font-size: 13px;
         }
 
-        .category-marker-pin {
-            background: var(--brand-primary);
-            color: var(--brand-white);
-            border: 2px solid var(--brand-white);
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 15px;
-            box-shadow: 0 4px 10px rgba(0, 68, 101, 0.35);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            cursor: pointer;
-        }
+        .detail-content { padding: 24px; overflow-y: auto; flex: 1; }
+        .detail-tag { color: var(--accent); font-weight: 800; font-size: 11px; text-transform: uppercase; margin-bottom: 10px; display: block; }
+        .detail-content h2 { font-size: 20px; margin-bottom: 16px; color: var(--text-main); line-height: 1.3; }
+        .detail-desc { font-size: 15px; color: #475569; line-height: 1.6; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #f1f5f9; }
+        
+        .info-grid { display: flex; flex-direction: column; gap: 10px; }
+        .info-item { font-size: 14px; }
+        .detail-price { margin-top: 20px; font-size: 16px; font-weight: 800; color: var(--primary); background: #f0f7ff; padding: 15px; border-radius: 10px; }
 
-        .category-marker-pin:hover {
-            transform: scale(1.2);
-            box-shadow: 0 6px 14px rgba(0, 68, 101, 0.5);
-        }
-
-        .route-number-pin {
-            color: var(--brand-white);
-            border: 2px solid var(--brand-white);
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            font-weight: 800;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-            transition: transform 0.2s ease;
-        }
-
-        .route-number-pin:hover { transform: scale(1.15); }
-
-        .leaflet-tile-pane { filter: contrast(95%) saturate(60%) brightness(105%); }
-        .leaflet-popup-content-wrapper { border-radius: 12px; padding: 0; box-shadow: var(--shadow-hover); }
-        .leaflet-popup-content { margin: 0; }
-        .popup-card { padding: 14px; min-width: 230px; max-width: 280px; font-size: 12px; line-height: 1.4; }
-        .popup-card h4 { font-size: 14px; margin: 4px 0; color: var(--text-dark); line-height: 1.3; }
-        .popup-card .desc { font-size: 12px; color: #475569; margin: 6px 0; line-height: 1.35; border-top: 1px solid #f1f5f9; padding-top: 6px; }
-        .popup-btn {
-            width: 100%;
-            padding: 8px;
-            border-radius: 6px;
-            background: var(--brand-primary);
-            color: white;
-            border: none;
-            margin-top: 10px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .popup-btn.selected {
-            background: var(--bg-app);
-            color: var(--brand-primary);
-            border: 1px solid var(--brand-primary);
-        }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <header class="app-header">
-        <div class="app-title">12 сентября <span>/ Гид ко Дню города</span></div>
-        <div class="app-badge">Коммерсантъ</div>
-    </header>
+    <div class="afisha-widget">
+        <header class="widget-header">
+            <h2>Юбилей за ширмой, дрифт и барокко</h2>
+            <p>Афиша Челябинска: 26 сентября — 2 октября</p>
+        </header>
 
-    <div class="app-body">
-        <main class="map-wrapper">
-            <div id="map"></div>
-        </main>
+        <nav class="days-nav" id="daysNav"></nav>
 
-        <aside class="sidebar">
-            <div class="filter-bar">
-                <button class="filter-chip active" data-cat="all">Все</button>
-                <button class="filter-chip" data-cat="concert">Концерты & Стендап</button>
-                <button class="filter-chip" data-cat="show">Шоу & Вечеринки</button>
-                <button class="filter-chip" data-cat="art">Арт & Технологии</button>
-                <button class="filter-chip" data-cat="sport">Экстрим</button>
-                <button class="filter-chip" data-cat="fest">Еда</button>
+        <div class="events-container" id="eventsList"></div>
+
+        <div class="detail-overlay" id="detailOverlay">
+            <div class="detail-header">
+                <button class="back-btn" onclick="closeDetail()">← Назад к списку</button>
             </div>
-
-            <div class="route-summary-panel">
-                <div class="conflict-alert" id="conflictAlert">
-                    ⚠️ Время некоторых событий пересекается.
-                </div>
-                <div class="route-stats" id="routeStats">
-                    Отметьте события в списке ниже, чтобы составить график.
-                </div>
-                <div class="route-legend" id="routeLegend"></div>
-                <div class="btn-group">
-                    <button class="btn btn-primary" id="btnFitRoute" disabled>Смотреть маршрут на карте</button>
-                    <button class="btn btn-outline" id="btnClear">Сброс</button>
-                </div>
-            </div>
-
-            <div class="events-list" id="eventsList"></div>
-        </aside>
+            <div class="detail-content" id="detailContent"></div>
+        </div>
     </div>
 
-    <script>
-        const eventsData = [
-    { 
-        id: 101, 
-        name: 'Финальный этап Уральской лиги дрифта (ULD) 2026', 
-        category: 'sport', 
-        categoryLabel: 'Спорт', 
-        icon: '🏎️', 
-        timeText: '10:30 – 21:00', 
-        startHour: 10.5, 
-        endHour: 21.0, 
-        address: 'Трасса 74 (ул. Северный Луч, 2д)', 
-        desc: 'Битва титанов дрифта: парные заезды, выставка эксклюзивных авто, автограф-сессия и дрифт-такси.', 
-        lat: 55.2175449, 
-        lng: 61.4187369 
-    },
-    { 
-        id: 102, 
-        name: 'Фестиваль «Культурный код. Челябинск»', 
-        category: 'fest', 
-        categoryLabel: 'Фестивали', 
-        icon: '⚡', 
-        timeText: '10:00 – 14:00', 
-        startHour: 10.0, 
-        endHour: 14.0, 
-        address: 'ТРК «Горки» (ул. Артиллерийская, 136)', 
-        desc: 'Чемпионат по брейк-дансу, фестиваль электромобилей Evolute Day и большая итоговая фотовыставка.', 
-        lat: 55.1641566, 
-        lng: 61.4284096 
-    },
-    { 
-        id: 103, 
-        name: 'Прогулка по крыше «Чувства города»', 
-        category: 'art', 
-        categoryLabel: 'Экскурсии', 
-        icon: '🌇', 
-        timeText: '17:00 – 19:00', 
-        startHour: 17.0, 
-        endHour: 19.0, 
-        address: 'Исторический музей (ул. Труда, 100)', 
-        desc: 'Финальная прогулка по крыше музея с элементами медиации и мастер-классом по созданию осенних закладок.', 
-        lat: 55.16833872188342, 
-        lng: 61.3977055346728 
-    },
-    { 
-        id: 104, 
-        name: 'Презентация баскетбольного клуба «ЧБК»', 
-        category: 'sport', 
-        categoryLabel: 'Спорт', 
-        icon: '🏀', 
-        timeText: '16:00 – 18:00', 
-        startHour: 16.0, 
-        endHour: 18.0, 
-        address: 'Отель «Малахит» (ул. Труда, 153)', 
-        desc: 'Официальное открытие сезона: знакомство с обновленным составом, презентация формы и новой промо-кампании.', 
-        lat: 55.16712846685871, 
-        lng: 61.395227730432346 
-    },
-    { 
-        id: 105, 
-        name: 'Спектакль «Актеры»', 
-        category: 'art', 
-        categoryLabel: 'Театр', 
-        icon: '🎭', 
-        timeText: '16:00 / 19:00', 
-        startHour: 16.0, 
-        endHour: 21.0, 
-        address: 'Театр кукол (ул. Кирова, 8)', 
-        desc: 'Спектакль-посвящение провинциальным артистам начала XX века по книге основателя театра Павла Гарянова.', 
-        lat: 55.180422281907006, 
-        lng: 61.39859735760705 
-    },
-    { 
-        id: 106, 
-        name: 'Фестиваль Юрия Башмета: Бах', 
-        category: 'concert', 
-        categoryLabel: 'Концерты', 
-        icon: '🎻', 
-        timeText: '18:00 – 20:00', 
-        startHour: 18.0, 
-        endHour: 20.0, 
-        address: 'Зал им. Прокофьева (ул. Труда, 92а)', 
-        desc: 'Юрий Башмет и «Солисты Москвы» исполнят все шесть Бранденбургских концертов И.С. Баха.', 
-        lat: 55.168217359742876, 
-        lng: 61.4010408027832
-    },
-    { 
-        id: 107, 
-        name: 'Диджей-шоу с симфоджаз-оркестром', 
-        category: 'concert', 
-        categoryLabel: 'Концерты', 
-        icon: '🎧', 
-        timeText: '19:00 – 20:20', 
-        startHour: 19.0, 
-        endHour: 20.33, 
-        address: 'Детская филармония (ул. Ворошилова, 6)', 
-        desc: 'Коллаборация электроники и классики: сэмплы и биты в сочетании со струнной и духовой секциями оркестра.', 
-        lat: 55.2698591, 
-        lng: 61.2245567 
-    },
-    { 
-        id: 108, 
-        name: 'Сергей Орлов: стендап-программа «Звезда»', 
-        category: 'show', 
-        categoryLabel: 'Шоу', 
-        icon: '🎤', 
-        timeText: '19:00 – 21:00', 
-        startHour: 19.0, 
-        endHour: 21.0, 
-        address: 'Концертный Холл Таганай (ул. Труда, 181)', 
-        desc: 'Честный и жизненный юмор от одного из самых популярных комиков страны. Новая сольная программа.', 
-        lat: 55.1683689, 
-        lng: 61.3695366 
-    },
-    { 
-        id: 109, 
-        name: 'Юбилейный спектакль «1935. Ровесники»', 
-        category: 'art', 
-        categoryLabel: 'Театр', 
-        icon: '🎂', 
-        timeText: '19:35 – 21:20', 
-        startHour: 19.58, 
-        endHour: 21.33, 
-        address: 'Театр кукол (ул. Кирова, 8)', 
-        desc: 'Масштабный спектакль-концерт к 90-летию театра: рефлексия о времени, людях и куклах.', 
-        lat: 55.171810, 
-        lng: 61.400977 
-    },
-    { 
-        id: 110, 
-        name: 'Концерт-экскурсия по Органному залу', 
-        category: 'art', 
-        categoryLabel: 'Экскурсии', 
-        icon: '🎹', 
-        timeText: '18:30 – 20:00', 
-        startHour: 18.5, 
-        endHour: 20.0, 
-        address: 'Зал «Родина» (ул. Кирова, 78)', 
-        desc: 'История здания, секреты механики органа Hermann Eule и прогулка по театральному закулисью.', 
-        lat: 55.170420, 
-        lng: 61.401880 
-    },
-    { 
-        id: 111, 
-        name: 'Концерт DK (Данила Кашин)', 
-        category: 'concert', 
-        categoryLabel: 'Концерты', 
-        icon: '🔊', 
-        timeText: '19:00 – 21:00', 
-        startHour: 19.0, 
-        endHour: 21.0, 
-        address: 'Галактика развлечений (Комсомольский пр., 16)', 
-        desc: 'Большой сольный концерт популярного артиста и блогера с презентацией новых треков.', 
-        lat: 55.190430, 
-        lng: 61.385312 
-    },
-    { 
-        id: 112, 
-        name: 'Спектакль «Едят ли ведьмы своих внуков?»', 
-        category: 'art', 
-        categoryLabel: 'Театр', 
-        icon: '👵', 
-        timeText: '19:00 – 21:00', 
-        startHour: 19.0, 
-        endHour: 21.0, 
-        address: 'Пр-во Свободы (ул. Свободы, 2к4)', 
-        desc: '«Страшная комедия» о встрече ребенка с загадочной бабушкой в театральном лофте Алексея Тетюева.', 
-        lat: 55.166418, 
-        lng: 61.415951 
-    },
-    { 
-        id: 113, 
-        name: 'Стендап Урал Тур: Зубарев и Дыба', 
-        category: 'show', 
-        categoryLabel: 'Шоу', 
-        icon: '🎙️', 
-        timeText: '19:00 – 21:00', 
-        startHour: 19.0, 
-        endHour: 21.0, 
-        address: 'Стендап-клуб (пр. Ленина, 66 А)', 
-        desc: 'Гастрольный тур комиков разных жанров: Михаил Зубарев и Ваня Дыба с лучшим материалом.', 
-        lat: 55.160161, 
-        lng: 61.381373 
-    }
-];
+<script>
+    const eventsData = [
+        // 26 СЕНТЯБРЯ (СБ)
+        { id: 1, date: '26.09', dayName: 'Сб', cat: 'Фестиваль', name: '«Культурный код»: Брейк-данс и электромобили', time: '10:00', loc: 'ТРК «Горки»', price: 'Вход свободный', age: '0+', desc: 'Мультиформатный фестиваль: чемпионат по брейк-дансу «БРЕЙК СОЮЗ 2026», выставка электромобилей Evolute Day и фотовыставка проекта.' },
+        { id: 2, date: '26.09', dayName: 'Сб', cat: 'Театр', name: 'Спектакль «Актеры»', time: '18:00', loc: 'Театр кукол им. Вольховского', price: 'до 1200 руб.', age: '12+', desc: 'Спектакль-посвящение провинциальным артистам начала XX века.' },
+        { id: 3, date: '26.09', dayName: 'Сб', cat: 'Театр', name: '«Едят ли ведьмы своих внуков?»', time: '19:00', loc: 'Пространство «Свободы», 2к4', price: '800 руб.', age: '12+', desc: '«Страшная комедия» о детских страхах и отношениях поколений.' },
+        { id: 4, date: '26.09', dayName: 'Сб', cat: 'Стендап', name: 'Стендап Урал Тур: Зубарев и Дыба', time: '19:00', loc: 'пр. Ленина, 66 А', price: '1100–1700 руб.', age: '18+', desc: 'Выступление Михаила Зубарева и Вани Дыбы в рамках уральского тура.' },
 
-        const SEGMENT_COLORS = [
-            '#004465', '#0E7C7B', '#C45C26', '#5B4B8A', '#2A9D8F',
-            '#B08900', '#9B2226', '#1D3557', '#457B9D', '#6A994E'
-        ];
+        // 27 СЕНТЯБРЯ (ВС)
+        { id: 5, date: '27.09', dayName: 'Вс', cat: 'Спорт', name: 'Финал Уральской лиги дрифта (ULD)', time: '16:30', loc: 'Трасса 74', price: '1600–3200 руб.', age: '0+', desc: 'Финальный этап сезона. Квалификация, парные дуэли, выставка авто и дрифт-такси.' },
+        { id: 6, date: '27.09', dayName: 'Вс', cat: 'Экскурсия', name: 'Прогулка по крыше. Чувства города', time: '17:00', loc: 'Исторический музей', price: '300 руб.', age: '12+', desc: 'Медиация на крыше восточной башни и мастер-класс по гербарию.' },
+        { id: 7, date: '27.09', dayName: 'Вс', cat: 'Спорт', name: 'Презентация БК «Челбаскет»', time: '16:00', loc: 'Отель «Малахит»', price: '300–1000 руб.', age: '6+', desc: 'Официальное открытие сезона, показ новой формы и встреча с составом.' },
+        { id: 8, date: '27.09', dayName: 'Вс', cat: 'Концерт', name: 'Фестиваль Башмета: Бах', time: '18:00', loc: 'Зал им. Прокофьева', price: '1800–6000 руб.', age: '16+', desc: 'Камерный ансамбль «Солисты Москвы» и Юрий Башмет исполняют Бранденбургские концерты.' },
+        { id: 9, date: '27.09', dayName: 'Вс', cat: 'Театр', name: 'Комедия «Шесть блюд из одной курицы»', time: '18:00', loc: 'Театр драмы им. Орлова', price: '350–3000 руб.', age: '16+', desc: 'Спектакль о матери, пытающейся женить сына через агентство.' },
+        { id: 10, date: '27.09', dayName: 'Вс', cat: 'Балет', name: 'Фильм-балет «Равель»', time: '15:00', loc: 'Киномакс-Урал', price: '500 руб.', age: '16+', desc: 'Кинопоказ современных балетных интерпретаций произведений Равеля.' },
+        { id: 11, date: '27.09', dayName: 'Вс', cat: 'Театр', name: 'Спектакль «Актеры»', time: '11:00', loc: 'Театр кукол', price: 'до 1200 руб.', age: '12+', desc: 'Дневной показ спектакля о провинциальных актерах.' },
 
-        let selectedIds = new Set();
-        let currentFilter = 'all';
-        let map;
-        let routeLayers = [];      
-        let routePinMarkers = [];
-        let baseMarkers = {};
-        let drawToken = 0;         
-        let interactiveSegments = [];
+        // 28 СЕНТЯБРЯ (ПН)
+        { id: 12, date: '28.09', dayName: 'Пн', cat: 'Концерт', name: 'Фестиваль Башмета: «Маленькие трагедии»', time: '18:00', loc: 'Зал им. Прокофьева', price: '1800–6000 руб.', age: '16+', desc: 'Программа «Солистов Москвы», посвященная А. С. Пушкину.' },
 
-        function notifyParentHeight() {
-            setTimeout(() => {
-                const body = document.body;
-                const html = document.documentElement;
-                const h = Math.max(body.scrollHeight, body.offsetHeight, html.scrollHeight, html.offsetHeight);
-                if (window.parent) {
-                    window.parent.postMessage({ frameHeight: h }, '*');
-                }
-            }, 100);
-        }
+        // 29 СЕНТЯБРЯ (ВТ)
+        { id: 13, date: '29.09', dayName: 'Вт', cat: 'Концерт', name: 'DK (Данила Кашин)', time: '19:00', loc: 'Галактика развлечений', price: '2300–9000 руб.', age: '16+', desc: 'Альтернативный хип-хоп от Данилы Кашина.' },
+        { id: 14, date: '29.09', dayName: 'Вт', cat: 'Театр', name: 'Спектакль «Актеры»', time: '18:30', loc: 'Театр кукол', price: 'до 1200 руб.', age: '12+', desc: 'Вечерний спектакль о театральном закулисье.' },
 
-        function initMap() {
-            map = L.map('map', {
-                zoomControl: false,
-                attributionControl: false,
-                scrollWheelZoom: false
-            }).setView([55.1700, 61.3700], 11);
+        // 30 СЕНТЯБРЯ (СР)
+        { id: 15, date: '30.09', dayName: 'Ср', cat: 'Детям', name: 'Посвящение в первоклассники', time: '10:00', loc: 'КЦ «Импульс»', price: '300 руб.', age: '6+', desc: 'Игровая сессия и просмотр тематического фильма.' },
+        { id: 16, date: '30.09', dayName: 'Ср', cat: 'Экскурсия', name: 'Концерт-экскурсия по Органному залу', time: '18:30', loc: 'Зал «Родина»', price: '600 руб.', age: '6+', desc: 'История здания, тайны органа Hermann Eule и закулисье.' },
+        { id: 17, date: '30.09', dayName: 'Ср', cat: 'Театр', name: 'Спектакль «Актеры»', time: '18:30', loc: 'Театр кукол', price: 'до 1200 руб.', age: '12+', desc: 'Постановка о жизни артистов начала прошлого века.' },
 
-            L.control.zoom({ position: 'topright' }).addTo(map);
+        // 02 ОКТЯБРЯ (ПТ)
+        { id: 18, date: '02.10', dayName: 'Пт', cat: 'Юбилей', name: 'Премьера «1935. Ровесники»', time: '19:35', loc: 'Театр кукол', price: 'до 1200 руб.', age: '16+', desc: 'Спектакль-концерт к 90-летию театра о людях и куклах.' },
+        { id: 19, date: '02.10', dayName: 'Пт', cat: 'Концерт', name: 'Диджей-шоу с симфоджаз-оркестром', time: '19:00', loc: 'Детская филармония', price: '700–1300 руб.', age: '6+', desc: 'Электроника и симфоджаз: обработки поп-хитов и рок-баллад.' },
+        { id: 20, date: '02.10', dayName: 'Пт', cat: 'Стендап', name: 'Сергей Орлов: программа «Звезда»', time: '19:00', loc: 'Live Холл Таганай', price: '2500–7000 руб.', age: '18+', desc: 'Сольный концерт одного из самых популярных комиков России.' }
+    ];
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 18
-            }).addTo(map);
+    const weekSchedule = [
+        { d: '26.09', n: 'Сб' }, { d: '27.09', n: 'Вс' }, { d: '28.09', n: 'Пн' },
+        { d: '29.09', n: 'Вт' }, { d: '30.09', n: 'Ср' }, { d: '01.10', n: 'Чт' },
+        { d: '02.10', n: 'Пт' }
+    ];
 
-            eventsData.forEach(evt => {
-                const customIcon = L.divIcon({
-                    html: `<div class="category-marker-pin">${evt.icon}</div>`,
-                    className: '',
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 16],
-                    popupAnchor: [0, -16]
-                });
+    let activeDate = '26.09';
 
-                const marker = L.marker([evt.lat, evt.lng], { icon: customIcon }).addTo(map);
-                marker.bindPopup(createPopupHtml(evt));
-                baseMarkers[evt.id] = marker;
-            });
-
-            setTimeout(() => {
-                map.invalidateSize();
-                notifyParentHeight();
-            }, 400);
-        }
-
-        function createPopupHtml(evt) {
-            const isSel = selectedIds.has(evt.id);
-            return `<div class="popup-card">
-                        <span class="event-category-tag">${evt.categoryLabel}</span>
-                        <h4>${evt.icon} ${evt.name}</h4>
-                        <div class="time">🕒 ${evt.timeText}</div>
-                        <div class="desc">${evt.desc}</div>
-                        <div style="font-size: 11px; color: #64748b; margin-top: 4px; margin-bottom: 6px;">📍 ${evt.address}</div>
-                        <button class="popup-btn ${isSel ? 'selected' : ''}" onclick="toggleSelect(${evt.id})">
-                            ${isSel ? '✓ В маршруте' : '+ Добавить'}
-                        </button>
-                    </div>`;
-        }
-
-        function renderSidebar() {
-            const container = document.getElementById('eventsList');
-            const ordered = eventsData.filter(e => selectedIds.has(e.id)).sort((a, b) => a.startHour - b.startHour);
-            const filtered = eventsData.filter(e => currentFilter === 'all' || e.category === currentFilter);
-
-            container.innerHTML = filtered.map(evt => {
-                const isSelected = selectedIds.has(evt.id);
-                const orderIdx = ordered.findIndex(e => e.id === evt.id);
-                return `
-                    <div class="event-card ${isSelected ? 'selected' : ''}" onclick="toggleSelect(${evt.id})">
-                        <input type="checkbox" class="event-card-checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelect(${evt.id})">
-                        <div class="event-card-content">
-                            <span class="event-category-tag">${evt.categoryLabel}</span>
-                            <div class="event-title">${evt.icon} ${evt.name}</div>
-                            <div class="event-meta">
-                                <span class="event-time-badge">🕒 ${evt.timeText}</span>
-                                <span>📍 ${evt.address}</span>
-                            </div>
-                        </div>
-                        ${isSelected ? `<div class="order-badge">${orderIdx + 1}</div>` : ''}
-                    </div>`;
-            }).join('');
-
-            notifyParentHeight();
-        }
-
-        window.toggleSelect = function(id) {
-            selectedIds.has(id) ? selectedIds.delete(id) : selectedIds.add(id);
-            updateApp();
-        };
-
-        function updateApp() {
-            const ordered = eventsData.filter(e => selectedIds.has(e.id)).sort((a, b) => a.startHour - b.startHour);
-            renderSidebar();
-
-            eventsData.forEach(evt => baseMarkers[evt.id].setPopupContent(createPopupHtml(evt)));
-
-            document.getElementById('btnFitRoute').disabled = ordered.length < 2;
-
-            if (ordered.length < 2) {
-                document.getElementById('routeStats').innerHTML = 'Отметьте события в списке ниже, чтобы составить график.';
-                document.getElementById('conflictAlert').classList.remove('visible');
-                document.getElementById('routeLegend').classList.remove('visible');
-                document.getElementById('routeLegend').innerHTML = '';
-                clearRouteLayers();
-            } else {
-                let hasConflict = false;
-                for (let i = 0; i < ordered.length - 1; i++) {
-                    if (ordered[i].endHour > ordered[i + 1].startHour) hasConflict = true;
-                }
-                document.getElementById('conflictAlert').classList.toggle('visible', hasConflict);
-                drawRoute(ordered);
-            }
-
-            notifyParentHeight();
-        }
-
-        function clearRouteLayers() {
-            routeLayers.forEach(l => map.removeLayer(l));
-            routeLayers = [];
-            routePinMarkers.forEach(m => map.removeLayer(m));
-            routePinMarkers = [];
-            interactiveSegments = [];
-        }
-
-        function renderLegend(segmentCount) {
-            const legend = document.getElementById('routeLegend');
-            if (segmentCount < 1) {
-                legend.classList.remove('visible');
-                legend.innerHTML = '';
-                return;
-            }
-
-            let html = `<div class="route-legend-title">Кликайте на кнопки ниже, чтобы скрыть или показать отрезки пути:</div>`;
-            for (let i = 0; i < segmentCount; i++) {
-                const color = SEGMENT_COLORS[i % SEGMENT_COLORS.length];
-                html += `
-                    <span class="legend-item" id="legend-btn-${i}" onclick="toggleSegmentVisibility(${i})">
-                        <span class="legend-dot" style="background:${color}"></span>
-                        Шаг ${i + 1} → ${i + 2}
-                    </span>`;
-            }
-            legend.innerHTML = html;
-            legend.classList.add('visible');
-            notifyParentHeight();
-        }
-
-        window.toggleSegmentVisibility = function(index) {
-            const seg = interactiveSegments.find(s => s.index === index);
-            if (!seg) return;
-
-            seg.visible = !seg.visible;
-
-            if (seg.visible) {
-                seg.casing.addTo(map);
-                seg.line.addTo(map);
-            } else {
-                map.removeLayer(seg.casing);
-                map.removeLayer(seg.line);
-            }
-
-            const btn = document.getElementById('legend-btn-' + index);
-            if (btn) {
-                btn.classList.toggle('inactive', !seg.visible);
-            }
-        };
-
-        function addSegmentLine(latlngs, color, index) {
-            const casing = L.polyline(latlngs, {
-                color: '#ffffff',
-                weight: 8,
-                opacity: 0.95,
-                lineCap: 'round',
-                lineJoin: 'round'
-            }).addTo(map);
-
-            const line = L.polyline(latlngs, {
-                color: color,
-                weight: 5,
-                opacity: 0.95,
-                lineCap: 'round',
-                lineJoin: 'round'
-            }).addTo(map);
-
-            routeLayers.push(casing, line);
-
-            interactiveSegments.push({
-                index: index,
-                casing: casing,
-                line: line,
-                visible: true
-            });
-        }
-
-        async function fetchFootSegment(from, to) {
-            const url = `https://router.project-osrm.org/route/v1/foot/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`;
-            const response = await fetch(url);
-            const data = await response.json();
-
-            if (data.code !== 'Ok' || !data.routes || !data.routes[0]) {
-                throw new Error('no route');
-            }
-
-            const route = data.routes[0];
-            const pathCoords = route.geometry.coordinates.map(c => [c[1], c[0]]);
-            return {
-                coords: pathCoords,
-                distance: route.distance,
-                duration: route.duration
+    function initNav() {
+        const nav = document.getElementById('daysNav');
+        weekSchedule.forEach(item => {
+            const btn = document.createElement('div');
+            btn.className = `day-btn ${item.d === activeDate ? 'active' : ''}`;
+            btn.innerHTML = `<span class="d-name">${item.n}</span><span class="d-num">${item.d.split('.')[0]}</span>`;
+            btn.onclick = () => {
+                activeDate = item.d;
+                document.querySelectorAll('.day-btn').forEach(b => 
+                    b.classList.toggle('active', b.querySelector('.d-num').innerText === item.d.split('.')[0])
+                );
+                renderEvents();
             };
+            nav.appendChild(btn);
+        });
+    }
+
+    function renderEvents() {
+        const container = document.getElementById('eventsList');
+        const filtered = eventsData.filter(e => e.date === activeDate);
+        
+        // ХРОНОЛОГИЧЕСКАЯ СОРТИРОВКА
+        filtered.sort((a, b) => a.time.localeCompare(b.time));
+
+        container.scrollTop = 0;
+
+        if (filtered.length === 0) {
+            container.innerHTML = `<div class="empty-state">На этот день событий не запланировано.<br>Посмотрите афишу на другие дни.</div>`;
+            return;
         }
 
-        async function drawRoute(ordered) {
-            const token = ++drawToken;
-            clearRouteLayers();
+        container.innerHTML = filtered.map(evt => `
+            <div class="event-card" onclick="openDetail(${evt.id})">
+                <div class="card-meta">
+                    <span class="event-cat">${evt.cat}</span>
+                    <span class="event-time">${evt.time}</span>
+                </div>
+                <h3>${evt.name}</h3>
+                <div class="event-loc">📍 ${evt.loc}</div>
+            </div>
+        `).join('');
+    }
 
-            ordered.forEach((evt, idx) => {
-                const color = idx === 0
-                    ? SEGMENT_COLORS[0]
-                    : SEGMENT_COLORS[(idx - 1) % SEGMENT_COLORS.length];
+    window.openDetail = function(id) {
+        const evt = eventsData.find(e => e.id === id);
+        const content = document.getElementById('detailContent');
+        content.innerHTML = `
+            <span class="detail-tag">${evt.cat} | ${evt.age}</span>
+            <h2>${evt.name}</h2>
+            <p class="detail-desc">${evt.desc}</p>
+            <div class="info-grid">
+                <div class="info-item">📅 <b>Когда:</b> ${evt.date} (${evt.dayName}) в ${evt.time}</div>
+                <div class="info-item">📍 <b>Где:</b> ${evt.loc}</div>
+            </div>
+            <div class="detail-price">Билеты: ${evt.price}</div>
+        `;
+        document.getElementById('detailOverlay').classList.add('open');
+    };
 
-                const icon = L.divIcon({
-                    html: `<div class="route-number-pin" style="background:${color}">${idx + 1}</div>`,
-                    className: '',
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 16]
-                });
-                routePinMarkers.push(
-                    L.marker([evt.lat, evt.lng], { icon, zIndexOffset: 1000 }).addTo(map)
-                );
-            });
+    window.closeDetail = function() {
+        document.getElementById('detailOverlay').classList.remove('open');
+    };
 
-            renderLegend(ordered.length - 1);
+    initNav();
+    renderEvents();
+</script>
 
-            let totalDistance = 0;
-            let totalDuration = 0;
-
-            const tasks = [];
-            for (let i = 0; i < ordered.length - 1; i++) {
-                tasks.push(
-                    fetchFootSegment(ordered[i], ordered[i + 1])
-                        .then(seg => ({ ok: true, index: i, seg }))
-                        .catch(() => ({
-                            ok: false,
-                            index: i,
-                            seg: {
-                                coords: [[ordered[i].lat, ordered[i].lng], [ordered[i + 1].lat, ordered[i + 1].lng]],
-                                distance: 0,
-                                duration: 0
-                            }
-                        }))
-                );
-            }
-
-            const results = await Promise.all(tasks);
-
-            if (token !== drawToken) return;
-
-            results
-                .sort((a, b) => a.index - b.index)
-                .forEach(result => {
-                    const color = SEGMENT_COLORS[result.index % SEGMENT_COLORS.length];
-                    addSegmentLine(result.seg.coords, color, result.index);
-                    totalDistance += result.seg.distance || 0;
-                    totalDuration += result.seg.duration || 0;
-                });
-
-            if (totalDistance > 0) {
-                const distanceKm = (totalDistance / 1000).toFixed(1);
-                const walkMinutes = Math.max(1, Math.round(totalDuration / 60));
-                document.getElementById('routeStats').innerHTML =
-                    `Событий: <strong>${ordered.length}</strong> | Пешком по городу: <strong>~${distanceKm} км</strong> (около ${walkMinutes} мин)`;
-            } else {
-                document.getElementById('routeStats').innerHTML =
-                    `Событий: <strong>${ordered.length}</strong> в маршруте`;
-            }
-
-            notifyParentHeight();
-        }
-
-        document.getElementById('btnClear').addEventListener('click', () => {
-            selectedIds.clear();
-            updateApp();
-            map.setView([55.1700, 61.3700], 11);
-        });
-
-        document.getElementById('btnFitRoute').addEventListener('click', () => {
-            if (routePinMarkers.length > 0) {
-                map.fitBounds(L.featureGroup(routePinMarkers).getBounds().pad(0.2));
-            }
-        });
-
-        document.querySelectorAll('.filter-chip').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentFilter = btn.dataset.cat;
-                renderSidebar();
-            });
-        });
-
-        initMap();
-        renderSidebar();
-    </script>
 </body>
 </html>
