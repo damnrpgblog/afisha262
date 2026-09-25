@@ -3,46 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Афиша Челябинска: Хронологический порядок</title>
+    <title>Афиша Челябинска</title>
     <style>
         :root {
             --primary: #004465;
             --accent: #c45c26;
-            --bg: #f4f7f9;
+            --bg: #ffffff; /* Белый фон, чтобы сливался с сайтом */
             --white: #ffffff;
             --text-main: #1e293b;
             --text-muted: #64748b;
             --border: #e2e8f0;
             --radius: 12px;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
+        /* Убираем фиксированную высоту и серый фон у body */
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: #cbd5e1; padding: 15px; display: flex; justify-content: center; }
+        body { 
+            font-family: -apple-system, system-ui, sans-serif; 
+            background: transparent; /* Чтобы не было серых зон */
+            height: auto; 
+            overflow: visible; 
+        }
 
         .afisha-widget {
             width: 100%;
-            max-width: 450px;
+            max-width: 100%; /* Занимаем всю ширину фрейма */
             background: var(--bg);
-            border-radius: var(--radius);
-            overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             position: relative;
-            height: 650px;
             display: flex;
             flex-direction: column;
+            height: auto; /* Высота теперь зависит от контента */
         }
 
         .widget-header {
             background: var(--primary);
             color: white;
             padding: 20px 16px;
-            flex-shrink: 0;
         }
-        .widget-header h2 { font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.3; }
-        .widget-header p { font-size: 11px; opacity: 0.8; margin-top: 4px; }
+        .widget-header h2 { font-size: 16px; font-weight: 800; text-transform: uppercase; }
 
-        /* Навигация */
         .days-nav {
             display: flex;
             background: var(--white);
@@ -50,8 +49,9 @@
             gap: 6px;
             overflow-x: auto;
             border-bottom: 1px solid var(--border);
-            flex-shrink: 0;
-            scrollbar-width: none;
+            position: sticky; /* Липкая шапка дней */
+            top: 0;
+            z-index: 10;
         }
         .days-nav::-webkit-scrollbar { display: none; }
 
@@ -66,27 +66,21 @@
             border: 1px solid var(--border);
             cursor: pointer;
             background: #fff;
-            transition: all 0.2s ease;
         }
-        .day-btn .d-name { font-size: 9px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
-        .day-btn .d-num { font-size: 17px; font-weight: 800; color: var(--text-main); }
         
-        .day-btn.active {
-            background: var(--primary);
-            border-color: var(--primary);
-            color: white;
-        }
+        .day-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
         .day-btn.active .d-name, .day-btn.active .d-num { color: white; }
+        .day-btn .d-name { font-size: 9px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
+        .day-btn .d-num { font-size: 17px; font-weight: 800; }
 
-        /* Список событий */
+        /* Список событий теперь НЕ скроллится внутри, а растет вниз */
         .events-container {
-            flex: 1;
-            overflow-y: auto;
             padding: 16px;
             display: flex;
             flex-direction: column;
             gap: 12px;
-            min-height: 0;
+            height: auto;
+            overflow: visible;
         }
 
         .event-card {
@@ -96,63 +90,50 @@
             border: 1px solid var(--border);
             border-left: 4px solid var(--primary);
             cursor: pointer;
-            transition: all 0.2s;
-            flex-shrink: 0;
             display: flex;
             flex-direction: column;
             gap: 6px;
         }
-        .event-card:hover { border-color: var(--primary); background: #fcfdfe; }
 
         .card-meta { display: flex; justify-content: space-between; align-items: center; }
         .event-cat { font-size: 10px; text-transform: uppercase; color: var(--accent); font-weight: 800; }
         .event-time { font-size: 12px; font-weight: 700; color: var(--primary); background: #eef6fb; padding: 2px 8px; border-radius: 4px; }
-        
-        .event-card h3 { font-size: 15px; color: var(--text-main); line-height: 1.3; font-weight: 700; margin: 2px 0; }
+        .event-card h3 { font-size: 15px; color: var(--text-main); font-weight: 700; }
         .event-loc { font-size: 12px; color: var(--text-muted); }
 
-        /* Детальное окно */
+        /* Детальное окно делаем фиксированным, чтобы оно перекрывало весь длинный список */
         .detail-overlay {
-            position: absolute;
+            position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: var(--white);
-            z-index: 100;
+            z-index: 1000;
             transform: translateX(100%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.3s ease;
             display: flex;
             flex-direction: column;
         }
         .detail-overlay.open { transform: translateX(0); }
-
         .detail-header { padding: 16px; border-bottom: 1px solid var(--border); }
-        .back-btn {
-            background: var(--bg); border: none; border-radius: 8px; 
-            padding: 8px 16px; cursor: pointer; color: var(--primary); 
-            font-weight: 700; font-size: 13px;
-        }
+        .back-btn { background: #f1f5f9; border: none; border-radius: 8px; padding: 10px 15px; cursor: pointer; color: var(--primary); font-weight: 700; }
 
         .detail-content { padding: 24px; overflow-y: auto; flex: 1; }
-        .detail-tag { color: var(--accent); font-weight: 800; font-size: 11px; text-transform: uppercase; margin-bottom: 10px; display: block; }
-        .detail-content h2 { font-size: 20px; margin-bottom: 16px; color: var(--text-main); line-height: 1.3; }
-        .detail-desc { font-size: 15px; color: #475569; line-height: 1.6; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #f1f5f9; }
+        .detail-tag { color: var(--accent); font-weight: 800; font-size: 11px; text-transform: uppercase; }
+        .detail-desc { font-size: 15px; line-height: 1.6; margin: 20px 0; color: #475569; }
+        .info-grid { background: #f8fafc; padding: 15px; border-radius: 12px; font-size: 14px; }
+        .detail-price { margin-top: 20px; font-weight: 800; color: var(--primary); font-size: 16px; }
         
-        .info-grid { display: flex; flex-direction: column; gap: 10px; }
-        .info-item { font-size: 14px; }
-        .detail-price { margin-top: 20px; font-size: 16px; font-weight: 800; color: var(--primary); background: #f0f7ff; padding: 15px; border-radius: 10px; }
-
-        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: 14px; }
+        .empty-state { text-align: center; padding: 40px; color: var(--text-muted); }
     </style>
 </head>
 <body>
 
-    <div class="afisha-widget">
+    <div class="afisha-widget" id="widgetRoot">
         <header class="widget-header">
             <h2>Юбилей за ширмой, дрифт и барокко</h2>
-            <p>Афиша Челябинска: 26 сентября — 2 октября</p>
+            <p>26 сентября — 2 октября</p>
         </header>
 
         <nav class="days-nav" id="daysNav"></nav>
-
         <div class="events-container" id="eventsList"></div>
 
         <div class="detail-overlay" id="detailOverlay">
@@ -165,37 +146,26 @@
 
 <script>
     const eventsData = [
-        // 26 СЕНТЯБРЯ (СБ)
         { id: 1, date: '26.09', dayName: 'Сб', cat: 'Фестиваль', name: '«Культурный код»: Брейк-данс и электромобили', time: '10:00', loc: 'ТРК «Горки»', price: 'Вход свободный', age: '0+', desc: 'Мультиформатный фестиваль: чемпионат по брейк-дансу «БРЕЙК СОЮЗ 2026», выставка электромобилей Evolute Day и фотовыставка проекта.' },
         { id: 2, date: '26.09', dayName: 'Сб', cat: 'Театр', name: 'Спектакль «Актеры»', time: '18:00', loc: 'Театр кукол им. Вольховского', price: 'до 1200 руб.', age: '12+', desc: 'Спектакль-посвящение провинциальным артистам начала XX века.' },
         { id: 3, date: '26.09', dayName: 'Сб', cat: 'Театр', name: '«Едят ли ведьмы своих внуков?»', time: '19:00', loc: 'Пространство «Свободы», 2к4', price: '800 руб.', age: '12+', desc: '«Страшная комедия» о детских страхах и отношениях поколений.' },
-        { id: 4, date: '26.09', dayName: 'Сб', cat: 'Стендап', name: 'Стендап Урал Тур: Зубарев и Дыба', time: '19:00', loc: 'пр. Ленина, 66 А', price: '1100–1700 руб.', age: '18+', desc: 'Выступление Михаила Зубарева и Вани Дыбы в рамках уральского тура.' },
-
-        // 27 СЕНТЯБРЯ (ВС)
-        { id: 5, date: '27.09', dayName: 'Вс', cat: 'Спорт', name: 'Финал Уральской лиги дрифта (ULD)', time: '16:30', loc: 'Трасса 74', price: '1600–3200 руб.', age: '0+', desc: 'Финальный этап сезона. Квалификация, парные дуэли, выставка авто и дрифт-такси.' },
-        { id: 6, date: '27.09', dayName: 'Вс', cat: 'Экскурсия', name: 'Прогулка по крыше. Чувства города', time: '17:00', loc: 'Исторический музей', price: '300 руб.', age: '12+', desc: 'Медиация на крыше восточной башни и мастер-класс по гербарию.' },
+        { id: 4, date: '26.09', dayName: 'Сб', cat: 'Стендап', name: 'Стендап Урал Тур: Зубарев и Дыба', time: '19:00', loc: 'пр. Ленина, 66 А', price: '1100–1700 руб.', age: '18+', desc: 'Михаил Зубарев и Ваня Дыба с лучшим материалом.' },
+        { id: 5, date: '27.09', dayName: 'Вс', cat: 'Театр', name: 'Спектакль «Актеры» (Дневной)', time: '11:00', loc: 'Театр кукол', price: 'до 1200 руб.', age: '12+', desc: 'Дневной показ постановки о провинциальных актерах.' },
+        { id: 10, date: '27.09', dayName: 'Вс', cat: 'Балет', name: 'Фильм-балет «Равель»', time: '15:00', loc: 'Киномакс-Урал', price: '500 руб.', age: '16+', desc: 'Кинопоказ балетов: «Картинки с выставки» и «Моя Матушка-Гусыня».' },
         { id: 7, date: '27.09', dayName: 'Вс', cat: 'Спорт', name: 'Презентация БК «Челбаскет»', time: '16:00', loc: 'Отель «Малахит»', price: '300–1000 руб.', age: '6+', desc: 'Официальное открытие сезона, показ новой формы и встреча с составом.' },
-        { id: 8, date: '27.09', dayName: 'Вс', cat: 'Концерт', name: 'Фестиваль Башмета: Бах', time: '18:00', loc: 'Зал им. Прокофьева', price: '1800–6000 руб.', age: '16+', desc: 'Камерный ансамбль «Солисты Москвы» и Юрий Башмет исполняют Бранденбургские концерты.' },
+        { id: 5, date: '27.09', dayName: 'Вс', cat: 'Спорт', name: 'Финал Уральской лиги дрифта (ULD)', time: '16:30', loc: 'Трасса 74', price: '1600–3200 руб.', age: '0+', desc: 'Финальный этап сезона. Квалификация, парные дуэли и дрифт-такси.' },
+        { id: 6, date: '27.09', dayName: 'Вс', cat: 'Экскурсия', name: 'Прогулка по крыше. Чувства города', time: '17:00', loc: 'Исторический музей', price: '300 руб.', age: '12+', desc: 'Медиация на крыше восточной башни и мастер-класс по гербарию.' },
+        { id: 8, date: '27.09', dayName: 'Вс', cat: 'Концерт', name: 'Фестиваль Башмета: Бах', time: '18:00', loc: 'Зал им. Прокофьева', price: '1800–6000 руб.', age: '16+', desc: 'Юрий Башмет и «Солисты Москвы» исполняют Бранденбургские концерты.' },
         { id: 9, date: '27.09', dayName: 'Вс', cat: 'Театр', name: 'Комедия «Шесть блюд из одной курицы»', time: '18:00', loc: 'Театр драмы им. Орлова', price: '350–3000 руб.', age: '16+', desc: 'Спектакль о матери, пытающейся женить сына через агентство.' },
-        { id: 10, date: '27.09', dayName: 'Вс', cat: 'Балет', name: 'Фильм-балет «Равель»', time: '15:00', loc: 'Киномакс-Урал', price: '500 руб.', age: '16+', desc: 'Кинопоказ современных балетных интерпретаций произведений Равеля.' },
-        { id: 11, date: '27.09', dayName: 'Вс', cat: 'Театр', name: 'Спектакль «Актеры»', time: '11:00', loc: 'Театр кукол', price: 'до 1200 руб.', age: '12+', desc: 'Дневной показ спектакля о провинциальных актерах.' },
-
-        // 28 СЕНТЯБРЯ (ПН)
-        { id: 12, date: '28.09', dayName: 'Пн', cat: 'Концерт', name: 'Фестиваль Башмета: «Маленькие трагедии»', time: '18:00', loc: 'Зал им. Прокофьева', price: '1800–6000 руб.', age: '16+', desc: 'Программа «Солистов Москвы», посвященная А. С. Пушкину.' },
-
-        // 29 СЕНТЯБРЯ (ВТ)
-        { id: 13, date: '29.09', dayName: 'Вт', cat: 'Концерт', name: 'DK (Данила Кашин)', time: '19:00', loc: 'Галактика развлечений', price: '2300–9000 руб.', age: '16+', desc: 'Альтернативный хип-хоп от Данилы Кашина.' },
+        { id: 12, date: '28.09', dayName: 'Пн', cat: 'Концерт', name: 'Фестиваль Башмета: «Маленькие трагедии»', time: '18:00', loc: 'Зал им. Прокофьева', price: '1800–6000 руб.', age: '16+', desc: 'Программа ансамбля «Солистов Москвы», посвященная Пушкину.' },
         { id: 14, date: '29.09', dayName: 'Вт', cat: 'Театр', name: 'Спектакль «Актеры»', time: '18:30', loc: 'Театр кукол', price: 'до 1200 руб.', age: '12+', desc: 'Вечерний спектакль о театральном закулисье.' },
-
-        // 30 СЕНТЯБРЯ (СР)
+        { id: 13, date: '29.09', dayName: 'Вт', cat: 'Концерт', name: 'DK (Данила Кашин)', time: '19:00', loc: 'Галактика развлечений', price: '2300–9000 руб.', age: '16+', desc: 'Концерт популярного артиста в стиле альтернативного хип-хопа.' },
         { id: 15, date: '30.09', dayName: 'Ср', cat: 'Детям', name: 'Посвящение в первоклассники', time: '10:00', loc: 'КЦ «Импульс»', price: '300 руб.', age: '6+', desc: 'Игровая сессия и просмотр тематического фильма.' },
         { id: 16, date: '30.09', dayName: 'Ср', cat: 'Экскурсия', name: 'Концерт-экскурсия по Органному залу', time: '18:30', loc: 'Зал «Родина»', price: '600 руб.', age: '6+', desc: 'История здания, тайны органа Hermann Eule и закулисье.' },
         { id: 17, date: '30.09', dayName: 'Ср', cat: 'Театр', name: 'Спектакль «Актеры»', time: '18:30', loc: 'Театр кукол', price: 'до 1200 руб.', age: '12+', desc: 'Постановка о жизни артистов начала прошлого века.' },
-
-        // 02 ОКТЯБРЯ (ПТ)
-        { id: 18, date: '02.10', dayName: 'Пт', cat: 'Юбилей', name: 'Премьера «1935. Ровесники»', time: '19:35', loc: 'Театр кукол', price: 'до 1200 руб.', age: '16+', desc: 'Спектакль-концерт к 90-летию театра о людях и куклах.' },
         { id: 19, date: '02.10', dayName: 'Пт', cat: 'Концерт', name: 'Диджей-шоу с симфоджаз-оркестром', time: '19:00', loc: 'Детская филармония', price: '700–1300 руб.', age: '6+', desc: 'Электроника и симфоджаз: обработки поп-хитов и рок-баллад.' },
-        { id: 20, date: '02.10', dayName: 'Пт', cat: 'Стендап', name: 'Сергей Орлов: программа «Звезда»', time: '19:00', loc: 'Live Холл Таганай', price: '2500–7000 руб.', age: '18+', desc: 'Сольный концерт одного из самых популярных комиков России.' }
+        { id: 20, date: '02.10', dayName: 'Пт', cat: 'Стендап', name: 'Сергей Орлов: программа «Звезда»', time: '19:00', loc: 'Live Холл Таганай', price: '2500–7000 руб.', age: '18+', desc: 'Сольный концерт популярного стендап-комика.' },
+        { id: 18, date: '02.10', dayName: 'Пт', cat: 'Юбилей', name: 'Премьера «1935. Ровесники»', time: '19:35', loc: 'Театр кукол', price: 'до 1200 руб.', age: '16+', desc: 'Спектакль-концерт к 90-летию театра о людях и куклах.' }
     ];
 
     const weekSchedule = [
@@ -205,6 +175,12 @@
     ];
 
     let activeDate = '26.09';
+
+    // ФУНКЦИЯ ОТПРАВКИ ВЫСОТЫ РОДИТЕЛЮ
+    function sendHeight() {
+        const height = document.getElementById('widgetRoot').scrollHeight;
+        window.parent.postMessage({ frameHeight: height }, '*');
+    }
 
     function initNav() {
         const nav = document.getElementById('daysNav');
@@ -226,27 +202,25 @@
     function renderEvents() {
         const container = document.getElementById('eventsList');
         const filtered = eventsData.filter(e => e.date === activeDate);
-        
-        // ХРОНОЛОГИЧЕСКАЯ СОРТИРОВКА
         filtered.sort((a, b) => a.time.localeCompare(b.time));
 
-        container.scrollTop = 0;
-
         if (filtered.length === 0) {
-            container.innerHTML = `<div class="empty-state">На этот день событий не запланировано.<br>Посмотрите афишу на другие дни.</div>`;
-            return;
-        }
-
-        container.innerHTML = filtered.map(evt => `
-            <div class="event-card" onclick="openDetail(${evt.id})">
-                <div class="card-meta">
-                    <span class="event-cat">${evt.cat}</span>
-                    <span class="event-time">${evt.time}</span>
+            container.innerHTML = `<div class="empty-state">На этот день событий не запланировано.<br>Посмотрите другие даты.</div>`;
+        } else {
+            container.innerHTML = filtered.map(evt => `
+                <div class="event-card" onclick="openDetail(${evt.id})">
+                    <div class="card-meta">
+                        <span class="event-cat">${evt.cat}</span>
+                        <span class="event-time">${evt.time}</span>
+                    </div>
+                    <h3>${evt.name}</h3>
+                    <div class="event-loc">📍 ${evt.loc}</div>
                 </div>
-                <h3>${evt.name}</h3>
-                <div class="event-loc">📍 ${evt.loc}</div>
-            </div>
-        `).join('');
+            `).join('');
+        }
+        
+        // Ждем отрисовку и шлем высоту
+        setTimeout(sendHeight, 100);
     }
 
     window.openDetail = function(id) {
@@ -257,8 +231,8 @@
             <h2>${evt.name}</h2>
             <p class="detail-desc">${evt.desc}</p>
             <div class="info-grid">
-                <div class="info-item">📅 <b>Когда:</b> ${evt.date} (${evt.dayName}) в ${evt.time}</div>
-                <div class="info-item">📍 <b>Где:</b> ${evt.loc}</div>
+                <div>📅 <b>Когда:</b> ${evt.date} (${evt.dayName}) в ${evt.time}</div>
+                <div>📍 <b>Где:</b> ${evt.loc}</div>
             </div>
             <div class="detail-price">Билеты: ${evt.price}</div>
         `;
@@ -268,6 +242,9 @@
     window.closeDetail = function() {
         document.getElementById('detailOverlay').classList.remove('open');
     };
+
+    // Слушаем изменение размеров окна
+    window.addEventListener('resize', sendHeight);
 
     initNav();
     renderEvents();
